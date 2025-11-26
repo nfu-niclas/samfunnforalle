@@ -2,7 +2,7 @@
 import post from './post';
 import author from './author';
 import category from './category';
-import siteSettings from './SiteSettings';
+import siteSettings from './siteSettings';
 
 export const schemaTypes = [
     // List opp alle skjemaene her
