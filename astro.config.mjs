@@ -3,6 +3,8 @@ import sanity from '@sanity/astro';
 import node from '@astrojs/node';
 import react from '@astrojs/react'; // Denne må kanskje legges til manuelt hvis den mangler
 
+import tailwindcss from '@tailwindcss/vite';
+
 export default defineConfig({
   integrations: [
     react(),
@@ -13,8 +15,14 @@ export default defineConfig({
       studioBasePath: '/admin',
     }),
   ],
+
   output: 'server',
+
   adapter: node({
     mode: 'standalone',
   }),
+
+  vite: {
+    plugins: [tailwindcss()],
+  },
 });

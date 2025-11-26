@@ -1,0 +1,119 @@
+---
+// 1. Importer nødvendige verktøy (React-oriented Sanity client)
+import sanityClient from '@sanity/client';
+import imageUrlBuilder from '@sanity/image-url';
+import { PortableText } from '@portabletext/react'; // React Portable Text renderer
+
+// 2. Sanity client + bildebygger
+const client = sanityClient({
+    projectId: 'yhvccqet', // Husk å bytte ut
+    dataset: 'production',
+    apiVersion: '2021-10-21',
+    useCdn: true,
+});
+
+const builder = imageUrlBuilder(client);
+
+function urlFor(source: any) {
+    return builder.image(source);
+}
+
+// 3. Funksjon for å generere statiske stier (crucial for SSG/hastighet)
+// Astro må vite HVILKE sider som skal bygges basert på Sanity-innholdet.
+export async function getStaticPaths() {
+    // Henter sluggen for ALLE publiserte poster
+    const slugs = await client.fetch(`*[_type == "post" && defined(slug.current)]{"params": { "slug": slug.current }}`);
+
+    return slugs;
+}
+
+// 4. Hent data for den spesifikke siden
+// Vi får tilgang til den nåværende sluggen via "Astro.params"
+const { slug } = Astro.params;
+
+// GROQ-spørringen for å hente den ENE artikkelen
+const postQuery = `*[_type == "post" && slug.current == $slug][0]{
+    title,
+    'slug': slug.current,
+    publishedAt,
+    mainImage,
+    body, // Henter rik-tekst innholdet
+    author->{name, image} // Henter forfatternavn og bilde
+}`;
+
+// Hent data ved hjelp av sluggen som parameter
+const post = await client.fetch(postQuery, { slug });
+
+
+// 5. Vis feilmelding hvis artikkelen ikke finnes
+if (!post) {
+    return Astro.redirect('/404'); // Må ha en 404 side, eller lag en enkel feilmelding
+}
+
+// 6. Formater dato
+function formatDate(dateString: string) {
+    return new Date(dateString).toLocaleDateString('nb-NO', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    });
+}
+---
+
+<html lang="no">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{post.title} | Samfunn For Alle</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+        .main-image { width: 100%; height: auto; object-fit: cover; margin-bottom: 20px; }
+        .article-content { margin-top: 30px; }
+        .author-box { border-top: 1px solid #eee; padding-top: 15px; margin-top: 30px; font-size: 0.9em; display: flex; align-items: center; gap: 10px; }
+        .author-box img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
+        /* Portable Text styling (minimal) */
+        .article-content p { margin-bottom: 1em; }
+        .article-content h2 { margin-top: 1.5em; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <header>
+        <p><a href="/">← Tilbake til forsiden</a></p>
+    </header>
+
+    <main>
+        {post.mainImage && (
+            <img 
+                src={urlFor(post.mainImage).width(800).url()} 
+                alt={`Hovedbilde for ${post.title}`}
+                class="main-image"
+            />
+        )}
+        
+        <h1>{post.title}</h1>
+        
+        <p class="meta-info">
+            Publisert: {formatDate(post.publishedAt)}
+        </p>
+
+        <div class="article-content">
+            <PortableText value={post.body} />
+        </div>
+
+        {post.author && (
+            <div class="author-box">
+                {post.author.image && (
+                    <img 
+                        src={urlFor(post.author.image).width(100).url()} 
+                        alt={`Bilde av ${post.author.name}`}
+                    />
+                )}
+                <div>
+                    <strong>Av: {post.author.name}</strong>
+                </div>
+            </div>
+        )}
+
+    </main>
+</body>
+</html>
