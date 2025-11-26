@@ -5,13 +5,13 @@ import react from '@astrojs/react'; // Denne må kanskje legges til manuelt hvis
 
 export default defineConfig({
   integrations: [
+    react(),
     sanity({
-      projectId: 'yhvccqet', // SFA-prosjektet.
-      dataset: 'production',
-      useCdn: true, // Raskere, men kan ta noen minutter før endringer vises
-      studioBasePath: '/admin', // Her vil admin-panelet ditt leve
+      projectId: 'yhvccqet', // MÅ VÆRE KORREKT
+      dataset: 'production',         // Som regel 'production'
+      useCdn: false,                 // Sett til 'false' under utvikling
+      studioBasePath: '/admin',
     }),
-    react(), // Sanity Studio trenger React
   ],
   output: 'server',
   adapter: node({
